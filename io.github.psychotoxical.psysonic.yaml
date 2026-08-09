@@ -28,13 +28,29 @@ build-options:
 
 modules:
   - name: psysonic
-    only-arches: [x86_64]
     buildsystem: simple
+    build-options:
+      append-path: /usr/lib/sdk/node26/bin
+      env:
+        npm_config_nodedir: /usr/lib/sdk/node26
+        XDG_CACHE_HOME: /run/build/psysonic/flatpak-node/cache
+        electron_config_cache: /run/build/psysonic/flatpak-node/cache/electron
+        ELECTRON_CACHE: /run/build/psysonic/flatpak-node/cache/electron
+        npm_config_cache: /run/build/psysonic/flatpak-node/npm-cache
+        npm_config_offline: 'true'
     build-commands:
       - rm -f pnpm-lock.yaml
       - rm -rf node_modules
       - rm -f package-lock.json
 
+      - yarn cache clean --offline
+      - ELECTRON_SKIP_BINARY_DOWNLOAD=1 CYPRESS_INSTALL_BINARY=0 yarn --offline
+      - yarn run tauri:build
+      - |
+        . ./flatpak-node/electron-builder-arch-args.sh
+        yarn run build:linux $ELECTRON_BUILDER_ARCH_ARGS --dir
+      - cp -a dist/linux*unpacked /app/main
+      - chmod +x /app/main/psysonic
 
       - install -Dm755 -t /app/bin/ psysonic.sh
       - install -Dm644 ${FLATPAK_ID}.desktop      /app/share/applications/${FLATPAK_ID}.desktop
@@ -59,7 +75,23 @@ modules:
       - type: file
         path: io.github.psychotoxical.psysonic.desktop
 
+      - type: inline
+        dest-filename: .yarnrc
+        contents: |
+          yarn-offline-mirror "/run/build/psysonic/flatpak-node/yarn-mirror"
+          cache-folder "/run/downloads"
+          prefix "/run/downloads"
+          --install.offline true
+          --run.offline true
+
+      - yarn-sources.json
+
+      - cargo-sources.json
+
+      - type: file
+        path: yarn.lock
+
       - type: script
         dest-filename: psysonic.sh
         commands:
-          - exec /app/bin/usr/bin/psysonic --no-sandbox "$0"
+          - zypak-wrapper /app/main/psysonic "$@"

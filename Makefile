@@ -1,6 +1,6 @@
 # Makefile for building, running and cleaning the Flatpak package
 
-FLATPACK_ID = io.github.victoralvesf.psysonic
+FLATPACK_ID = io.github.psychotoxical.psysonic
 FILE_YAML = ${FLATPACK_ID}.yaml
 FILE_METAINFO = ${FLATPACK_ID}.metainfo.xml
 FILE_FLATPAK = ${FLATPACK_ID}.flatpak
@@ -55,20 +55,24 @@ flatpak-node-generator: setup-venv # Install flatpak-node-generator in the virtu
 	. .venv/bin/activate && \
 	pip install flatpak-node-generator
 
+flatpak-cargo-generator: setup-venv # Install flatpak-node-generator in the virtual environment
+	. .venv/bin/activate && \
+	pip install flatpak-cargo-generator
+
 clean: # Clean up build artifacts
 	rm -rf .flatpak-builder ${BUILD_PATH} export temp-psysonic ${FILE_FLATPAK}
 
 clean-build-path: # Clean up only the build path
 	rm -rf ${BUILD_PATH}
 
-yarn-sources: clean flatpak-node-generator # Update node modules in the Flatpak package
+yarn-sources: clean flatpak-node-generator flatpak-cargo-generator # Update node modules in the Flatpak package
 	git clone https://github.com/Psychotoxical/psysonic.git temp-psysonic
 	cd temp-psysonic && git checkout ${COMMIT_HASH}
-	cd temp-psysonic && sed -i '/packageManager/d' package.json
 	cd temp-psysonic && ${YARN_BIN} cache clean && rm -rf node_modules package-lock.json yarn.lock pnpm-lock.yaml
 	${YARN_BIN} --cwd temp-psysonic install --production --mode=skip-build --network-timeout 100000
 	cd temp-psysonic && npm cache clean -g --force --verbose && rm -rf node_modules package-lock.json pnpm-lock.yaml
 	cd temp-psysonic && ../.venv/bin/flatpak-node-generator yarn -r yarn.lock --no-trim-index --electron-node-headers -o ../yarn-sources.json
+	cd temp-psysonic && ../.venv/bin/flatpak-cargo-generator -o ../cargo-sources.json src-tauri/Cargo.lock
 	cp temp-psysonic/yarn.lock yarn.lock
 	rm -rf temp-psysonic
 

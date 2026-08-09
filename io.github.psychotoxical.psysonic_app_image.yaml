@@ -1,0 +1,62 @@
+app-id: io.github.psychotoxical.psysonic
+runtime: org.freedesktop.Platform
+runtime-version: '25.08'
+sdk: org.freedesktop.Sdk
+sdk-extensions: org.freedesktop.Sdk.Extension.rust-stable
+command: psysonic.sh
+separate-locales: false
+finish-args:
+  - --share=ipc
+  - --device=dri
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --socket=pulseaudio
+  - --share=network
+  # - --env=ELECTRON_TRASH=gio
+  - --env=XCURSOR_PATH=/run/host/user-share/icons:/run/host/share/icons
+  - --talk-name=org.kde.StatusNotifierWatcher
+  - --filesystem=xdg-run/tray-icon:create
+  - --talk-name=com.canonical.AppIndicator
+  # media player controls
+  - --own-name=org.mpris.MediaPlayer2.chromium.*
+  # discord rich presence
+  - --filesystem=xdg-run/app/com.discordapp.Discord:create
+build-options:
+  append-path: /usr/lib/sdk/rust-stable/bin
+modules:
+  - name: psysonic
+    only-arches: [x86_64]
+    buildsystem: simple
+    build-commands:
+      - chmod +x Psysonic_*.AppImage
+      - ./Psysonic_*.AppImage --appimage-extract
+      - mv squashfs-root /app/bin
+      - install -Dm755 -t /app/bin/ psysonic.sh
+      - install -Dm644 ${FLATPAK_ID}.desktop      /app/share/applications/${FLATPAK_ID}.desktop
+      - install -Dm644 ${FLATPAK_ID}.metainfo.xml /app/share/metainfo/${FLATPAK_ID}.metainfo.xml
+      - install -Dm644 32x32.png                  /app/share/icons/hicolor/32x32/apps/${FLATPAK_ID}.png
+      - install -Dm644 128x128.png                /app/share/icons/hicolor/128x128/apps/${FLATPAK_ID}.png
+
+    sources:
+      - type: file
+        #url: https://github.com/Psychotoxical/psysonic/releases/download/app-v1.49.0/Psysonic_1.49.0_amd64.AppImage
+        #sha256: d1438f5b0d2f7f3165fee5962cd0c9ec06fa5e5a5819cc4cd4c5e2aa93bd03d7
+        url: https://github.com/Psychotoxical/psysonic/releases/download/app-v1.50.0/Psysonic_1.50.0_amd64.AppImage
+        sha256: d7673f2b5859aa43b1a93d62073863116029f6d0e6b77f08db3a9a6e0d3b18d2
+
+      - type: file
+        path: icons/32x32.png
+
+      - type: file
+        path: icons/128x128.png
+
+      - type: file
+        path: io.github.psychotoxical.psysonic.metainfo.xml
+
+      - type: file
+        path: io.github.psychotoxical.psysonic.desktop
+
+      - type: script
+        dest-filename: psysonic.sh
+        commands:
+          - exec /app/bin/usr/bin/psysonic --no-sandbox "$0"
