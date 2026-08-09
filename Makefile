@@ -1,11 +1,13 @@
 # Makefile for building, running and cleaning the Flatpak package
 
-FLATPACK_ID = io.github.psychotoxical.psysonic
+FLATPACK_ID = io.github.victoralvesf.psysonic
 FILE_YAML = ${FLATPACK_ID}.yaml
 FILE_METAINFO = ${FLATPACK_ID}.metainfo.xml
 FILE_FLATPAK = ${FLATPACK_ID}.flatpak
 
-OPTS = --arch=x86_64 --force-clean --user --verbose --disable-rofiles-fuse --disable-cache
+COMMIT_HASH = '2d4cb95f7f932aa3ac91b8238f966363ca9eb8d6'
+
+OPTS = --arch=x86_64 --force-clean --user --verbose
 OPTS_INSTALL = ${OPTS} --install
 OPTS_FULL_INSTALL = ${OPTS_INSTALL} --install-deps-from=flathub
 
@@ -54,10 +56,29 @@ flatpak-node-generator: setup-venv # Install flatpak-node-generator in the virtu
 	pip install flatpak-node-generator
 
 clean: # Clean up build artifacts
-	rm -rf .flatpak-builder ${BUILD_PATH} export ${FILE_FLATPAK}
+	rm -rf .flatpak-builder ${BUILD_PATH} export temp-psysonic ${FILE_FLATPAK}
 
 clean-build-path: # Clean up only the build path
 	rm -rf ${BUILD_PATH}
+
+yarn-sources: clean flatpak-node-generator # Update node modules in the Flatpak package
+	git clone https://github.com/Psychotoxical/psysonic.git temp-psysonic
+	cd temp-psysonic && git checkout ${COMMIT_HASH}
+	cd temp-psysonic && sed -i '/packageManager/d' package.json
+	cd temp-psysonic && ${YARN_BIN} cache clean && rm -rf node_modules package-lock.json yarn.lock pnpm-lock.yaml
+	${YARN_BIN} --cwd temp-psysonic install --production --mode=skip-build --network-timeout 100000
+	cd temp-psysonic && npm cache clean -g --force --verbose && rm -rf node_modules package-lock.json pnpm-lock.yaml
+	cd temp-psysonic && ../.venv/bin/flatpak-node-generator yarn -r yarn.lock --no-trim-index --electron-node-headers -o ../yarn-sources.json
+	cp temp-psysonic/yarn.lock yarn.lock
+	rm -rf temp-psysonic
+
+generated-sources: clean flatpak-node-generator # Update node modules in the Flatpak package
+	git clone https://github.com/victoralvesf/psysonic.git temp-psysonic
+	cd temp-psysonic && git checkout ${COMMIT_HASH}
+	cd temp-psysonic && npm cache clean -g --force --verbose && rm -rf node_modules package-lock.json
+	cd temp-psysonic && npm i --lockfile-version 3
+	cd temp-psysonic && ../.venv/bin/flatpak-node-generator npm -r package-lock.json --no-trim-index --electron-node-headers -o ../generated-sources.json
+	rm -rf temp-psysonic
 
 run: # Run the Flatpak application
 	flatpak run ${FLATPACK_ID} --trace-deprecation --verbose --ostree-verbose --unhandled-rejections=strict --trace-warnings
@@ -70,7 +91,3 @@ lint: # Lint the Flatpak YAML file
 
 lint-metainfo:
 	flatpak run --command=flatpak-builder-lint org.flatpak.Builder appstream ${FILE_METAINFO}
-
-sync-aonsoku:
-	cp -v io.github.psysonic.aonsoku.metainfo.xml ../aonsoku/flatpak
-	cp -v io.github.psysonic.aonsoku.desktop ../aonsoku/flatpak

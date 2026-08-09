@@ -2,9 +2,12 @@ app-id: io.github.psychotoxical.psysonic
 runtime: org.freedesktop.Platform
 runtime-version: '25.08'
 sdk: org.freedesktop.Sdk
-sdk-extensions: org.freedesktop.Sdk.Extension.rust-stable
-command: psysonic.sh
+base: org.electronjs.Electron2.BaseApp
+base-version: '25.08'
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.node26
 separate-locales: false
+
 finish-args:
   - --share=ipc
   - --device=dri
@@ -12,25 +15,27 @@ finish-args:
   - --socket=fallback-x11
   - --socket=pulseaudio
   - --share=network
-  # - --env=ELECTRON_TRASH=gio
+  - --env=ELECTRON_TRASH=gio
   - --env=XCURSOR_PATH=/run/host/user-share/icons:/run/host/share/icons
   - --talk-name=org.kde.StatusNotifierWatcher
   - --filesystem=xdg-run/tray-icon:create
   - --talk-name=com.canonical.AppIndicator
   # media player controls
   - --own-name=org.mpris.MediaPlayer2.chromium.*
-  # discord rich presence
-  - --filesystem=xdg-run/app/com.discordapp.Discord:create
+
 build-options:
   append-path: /usr/lib/sdk/rust-stable/bin
+
 modules:
   - name: psysonic
     only-arches: [x86_64]
     buildsystem: simple
     build-commands:
-      - chmod +x Psysonic_*.AppImage
-      - ./Psysonic_*.AppImage --appimage-extract
-      - mv squashfs-root /app/bin
+      - rm -f pnpm-lock.yaml
+      - rm -rf node_modules
+      - rm -f package-lock.json
+
+
       - install -Dm755 -t /app/bin/ psysonic.sh
       - install -Dm644 ${FLATPAK_ID}.desktop      /app/share/applications/${FLATPAK_ID}.desktop
       - install -Dm644 ${FLATPAK_ID}.metainfo.xml /app/share/metainfo/${FLATPAK_ID}.metainfo.xml
@@ -38,11 +43,9 @@ modules:
       - install -Dm644 128x128.png                /app/share/icons/hicolor/128x128/apps/${FLATPAK_ID}.png
 
     sources:
-      - type: file
-        #url: https://github.com/Psychotoxical/psysonic/releases/download/app-v1.49.0/Psysonic_1.49.0_amd64.AppImage
-        #sha256: d1438f5b0d2f7f3165fee5962cd0c9ec06fa5e5a5819cc4cd4c5e2aa93bd03d7
-        url: https://github.com/Psychotoxical/psysonic/releases/download/app-v1.50.0/Psysonic_1.50.0_amd64.AppImage
-        sha256: d7673f2b5859aa43b1a93d62073863116029f6d0e6b77f08db3a9a6e0d3b18d2
+      - type: git
+        url: https://github.com/Psychotoxical/psysonic.git
+        commit: 2d4cb95f7f932aa3ac91b8238f966363ca9eb8d6
 
       - type: file
         path: icons/32x32.png
