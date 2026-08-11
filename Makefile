@@ -60,28 +60,30 @@ flatpak-cargo-generator: setup-venv # Install flatpak-node-generator in the virt
 	pip install flatpak-cargo-generator
 
 clean: # Clean up build artifacts
-	rm -rf .flatpak-builder ${BUILD_PATH} export temp-psysonic ${FILE_FLATPAK}
+	rm -rf build .flatpak-builder export temp-psysonic ${FILE_FLATPAK}
 
 clean-build-path: # Clean up only the build path
-	rm -rf ${BUILD_PATH}
+	rm -rf build .flatpak-builder/build
 
-yarn-sources: clean flatpak-node-generator flatpak-cargo-generator # Update node modules in the Flatpak package
+yarn-sources: flatpak-node-generator # Update node modules in the Flatpak package
 	git clone https://github.com/Psychotoxical/psysonic.git temp-psysonic
 	cd temp-psysonic && git checkout ${COMMIT_HASH}
 	cd temp-psysonic && ${YARN_BIN} cache clean && rm -rf node_modules package-lock.json yarn.lock pnpm-lock.yaml
 	${YARN_BIN} --cwd temp-psysonic install --production --mode=skip-build --network-timeout 100000
 	cd temp-psysonic && npm cache clean -g --force --verbose && rm -rf node_modules package-lock.json pnpm-lock.yaml
 	cd temp-psysonic && ../.venv/bin/flatpak-node-generator yarn -r yarn.lock --no-trim-index --electron-node-headers -o ../yarn-sources.json
-	cd temp-psysonic && ../.venv/bin/flatpak-cargo-generator -o ../cargo-sources.json src-tauri/Cargo.lock
 	cp temp-psysonic/yarn.lock yarn.lock
+
+cargo-sources: flatpak-cargo-generator
+	git clone https://github.com/Psychotoxical/psysonic.git temp-psysonic
+	cd temp-psysonic && git checkout ${COMMIT_HASH}
+	cd temp-psysonic && ../.venv/bin/flatpak-cargo-generator -t -o ../cargo-sources.json src-tauri/Cargo.lock
 	rm -rf temp-psysonic
 
-generated-sources: clean flatpak-node-generator # Update node modules in the Flatpak package
-	git clone https://github.com/victoralvesf/psysonic.git temp-psysonic
+generated-sources: flatpak-node-generator # Update node modules in the Flatpak package
+	git clone https://github.com/Psychotoxical/psysonic.git temp-psysonic
 	cd temp-psysonic && git checkout ${COMMIT_HASH}
-	cd temp-psysonic && npm cache clean -g --force --verbose && rm -rf node_modules package-lock.json
-	cd temp-psysonic && npm i --lockfile-version 3
-	cd temp-psysonic && ../.venv/bin/flatpak-node-generator npm -r package-lock.json --no-trim-index --electron-node-headers -o ../generated-sources.json
+	cd temp-psysonic && ../.venv/bin/flatpak-node-generator npm package-lock.json -o ../generated-sources.json
 	rm -rf temp-psysonic
 
 run: # Run the Flatpak application

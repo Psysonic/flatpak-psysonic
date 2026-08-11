@@ -1,62 +1,88 @@
 app-id: io.github.psychotoxical.psysonic
-runtime: org.freedesktop.Platform
-runtime-version: '25.08'
-sdk: org.freedesktop.Sdk
-base: org.electronjs.Electron2.BaseApp
-base-version: '25.08'
+runtime: org.gnome.Platform
+runtime-version: '50'
+sdk: org.gnome.Sdk
+
 sdk-extensions:
   - org.freedesktop.Sdk.Extension.node26
+  - org.freedesktop.Sdk.Extension.rust-stable
+
+command: psysonic
 separate-locales: false
 
 finish-args:
+  # Network: Subsonic server, Last.fm, Discord RPC, LRCLIB, Bandsintown
+  - --share=network
   - --share=ipc
-  - --device=dri
+  # Display: prefer Wayland, fall back to X11
   - --socket=wayland
   - --socket=fallback-x11
+  # On pure-Wayland sessions the X11 socket is absent; tell GDK to try
+  # Wayland first so GTK doesn't panic when XDG_SESSION_TYPE=wayland.
+  - --env=GDK_BACKEND=wayland,x11
+  # Audio: PulseAudio + ALSA, USB DACs (UMC202HD etc.)
   - --socket=pulseaudio
-  - --share=network
-  - --env=ELECTRON_TRASH=gio
-  - --env=XCURSOR_PATH=/run/host/user-share/icons:/run/host/share/icons
+  - --device=all
+  # D-Bus: MPRIS, Discord RPC, tray icon
+  - --socket=session-bus
+  - --talk-name=org.mpris.MediaPlayer2.*
+  - --own-name=org.mpris.MediaPlayer2.psysonic
+  - --talk-name=com.discordapp.*
+  # Discord RPC unix socket lives in $XDG_RUNTIME_DIR
+  - --filesystem=xdg-run/discord-ipc-0:ro
+  - --filesystem=xdg-run/discord-ipc-1:ro
+  - --filesystem=xdg-run/discord-ipc-2:ro
+  - --filesystem=xdg-run/discord-ipc-3:ro
+  - --filesystem=xdg-run/discord-ipc-4:ro
+  # Tray icon (GNOME needs AppIndicator extension installed)
   - --talk-name=org.kde.StatusNotifierWatcher
+  - --talk-name=org.freedesktop.Notifications
   - --filesystem=xdg-run/tray-icon:create
   - --talk-name=com.canonical.AppIndicator
-  # media player controls
-  - --own-name=org.mpris.MediaPlayer2.chromium.*
+  # Local music library (read-only, for future local-file playback)
+  - --filesystem=xdg-music:ro
 
 build-options:
-  append-path: /usr/lib/sdk/rust-stable/bin
+  append-path: /usr/lib/sdk/node26/bin:/usr/lib/sdk/rust-stable/bin
+  env:
+    - CARGO_HOME=/run/build/psysonic/cargo
+    - CARGO_NET_OFFLINE=true
+    - RUSTUP_TOOLCHAIN=stable
 
 modules:
+  # - name: libayatana-appindicator
+  #   buildsystem: cmake
+  #   sources:
+  #     - type: archive
+  #       url: https://github.com/AyatanaIndicators/libayatana-appindicator/archive/refs/tags/0.6.0.tar.gz
+  #       sha256: 23be92ad8eb9625ce93b23b14f82f3cf88a4970c31d48581945ddfbac0441d06
+
   - name: psysonic
     buildsystem: simple
     build-options:
-      append-path: /usr/lib/sdk/node26/bin
+      append-path: /usr/lib/sdk/node26/bin:/usr/lib/sdk/rust-stable/bin
       env:
-        npm_config_nodedir: /usr/lib/sdk/node26
-        XDG_CACHE_HOME: /run/build/psysonic/flatpak-node/cache
-        electron_config_cache: /run/build/psysonic/flatpak-node/cache/electron
-        ELECTRON_CACHE: /run/build/psysonic/flatpak-node/cache/electron
-        npm_config_cache: /run/build/psysonic/flatpak-node/npm-cache
-        npm_config_offline: 'true'
+        - PKG_CONFIG_PATH=/app/lib/pkgconfig:/app/share/pkgconfig
+        # Disables the in-app updater UI — Flathub owns updates for Flatpak installs
+        - VITE_PSYSONIC_FLATPAK=1
+        # Prevents tauri-build from checking whether the Vite dev server is running
+        - TAURI_SKIP_DEVSERVER_CHECK=true
+        # npm offline cache — flatpak-node-generator places sources in flatpak-node/npm-cache
+        - npm_config_cache=/run/build/psysonic/flatpak-node/npm-cache
+        - XDG_CACHE_HOME=/run/build/psysonic/flatpak-node/cache
     build-commands:
-      - rm -f pnpm-lock.yaml
-      - rm -rf node_modules
-      - rm -f package-lock.json
+      - npm ci --offline
+      - npm run tauri build --no-bundle
 
-      - yarn cache clean --offline
-      - ELECTRON_SKIP_BINARY_DOWNLOAD=1 CYPRESS_INSTALL_BINARY=0 yarn --offline
-      - yarn run tauri:build
-      - |
-        . ./flatpak-node/electron-builder-arch-args.sh
-        yarn run build:linux $ELECTRON_BUILDER_ARCH_ARGS --dir
-      - cp -a dist/linux*unpacked /app/main
-      - chmod +x /app/main/psysonic
+      - install -Dm755 src-tauri/target/release/psysonic "${FLATPAK_DEST}/bin/psysonic"
 
-      - install -Dm755 -t /app/bin/ psysonic.sh
-      - install -Dm644 ${FLATPAK_ID}.desktop      /app/share/applications/${FLATPAK_ID}.desktop
-      - install -Dm644 ${FLATPAK_ID}.metainfo.xml /app/share/metainfo/${FLATPAK_ID}.metainfo.xml
-      - install -Dm644 32x32.png                  /app/share/icons/hicolor/32x32/apps/${FLATPAK_ID}.png
-      - install -Dm644 128x128.png                /app/share/icons/hicolor/128x128/apps/${FLATPAK_ID}.png
+      - install -Dm644 ${FLATPAK_ID}.desktop      "${FLATPAK_DEST}/share/applications/${FLATPAK_ID}.desktop"
+      - install -Dm644 ${FLATPAK_ID}.metainfo.xml "${FLATPAK_DEST}/share/metainfo/${FLATPAK_ID}.metainfo.xml"
+
+      - install -Dm644 src-tauri/icons/32x32.png "${FLATPAK_DEST}/share/icons/hicolor/32x32/apps/${FLATPAK_ID}.png"
+      - install -Dm644 src-tauri/icons/128x128.png "${FLATPAK_DEST}/share/icons/hicolor/128x128/apps/${FLATPAK_ID}.png"
+      - install -Dm644 src-tauri/icons/128x128@2x.png "${FLATPAK_DEST}/share/icons/hicolor/256x256/apps/${FLATPAK_ID}.png"
+      - install -Dm644 src-tauri/icons/icon.png "${FLATPAK_DEST}/share/icons/hicolor/512x512/apps/${FLATPAK_ID}.png"
 
     sources:
       - type: git
@@ -64,34 +90,12 @@ modules:
         commit: 2d4cb95f7f932aa3ac91b8238f966363ca9eb8d6
 
       - type: file
-        path: icons/32x32.png
-
-      - type: file
-        path: icons/128x128.png
-
-      - type: file
         path: io.github.psychotoxical.psysonic.metainfo.xml
 
       - type: file
         path: io.github.psychotoxical.psysonic.desktop
 
-      - type: inline
-        dest-filename: .yarnrc
-        contents: |
-          yarn-offline-mirror "/run/build/psysonic/flatpak-node/yarn-mirror"
-          cache-folder "/run/downloads"
-          prefix "/run/downloads"
-          --install.offline true
-          --run.offline true
-
-      - yarn-sources.json
+      - generated-sources.json
 
       - cargo-sources.json
 
-      - type: file
-        path: yarn.lock
-
-      - type: script
-        dest-filename: psysonic.sh
-        commands:
-          - zypak-wrapper /app/main/psysonic "$@"

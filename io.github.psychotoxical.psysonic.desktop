@@ -2,6 +2,6 @@
 Type=Application
 Comment=A modern desktop client for Navidrome servers.
 Name=Psysonic
-Exec=psysonic.sh
+Exec=psysonic
 Icon=io.github.psychotoxical.psysonic
 Categories=Audio;
