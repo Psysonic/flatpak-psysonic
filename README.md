@@ -24,6 +24,8 @@
     make build-fast-install
     ```
 
+1. After installing, run the app with `make run`
+
 ## Generating sources
 
 To generate the required sources:
