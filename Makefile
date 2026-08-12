@@ -14,6 +14,8 @@ OPTS_FULL_INSTALL = ${OPTS_INSTALL} --install-deps-from=flathub
 BUILD_PATH=build
 YARN_BIN=$(shell which yarnpkg || which yarn)
 
+${PACKAGE_MANAGER} = $(shell if command -v apt &> /dev/null; then echo "apt"; elif command -v dnf &> /dev/null; then echo "dnf"; else echo "unknown"; fi)
+
 build-install: clean # Build the Flatpak package with dependencies already installed
 	flatpak-builder ${OPTS_INSTALL} ${BUILD_PATH} ${FILE_YAML}
 
@@ -44,7 +46,7 @@ install-dependencies-locally: # Install Flatpak runtime and SDK dependencies loc
 	flatpak install -y --user flathub org.freedesktop.Sdk.Extension.node24//25.08
 	flatpak install -y --user flathub org.gnome.Platform//46
 	flatpak install -y --user flathub org.gnome.Sdk//46
-	sudo apt install -y flatpak-builder nodejs npm yarnpkg
+	sudo ${PACKAGE_MANAGER} install -y flatpak-builder nodejs npm yarnpkg
 	sudo npm install -g yarn@1.22.22
 	sudo npm install -gpnpm@11.9.0
 
