@@ -89,6 +89,12 @@ generated-sources: flatpak-node-generator # Update node modules in the Flatpak p
 run: # Run the Flatpak application
 	flatpak run ${FLATPACK_ID} --trace-deprecation --verbose --ostree-verbose --unhandled-rejections=strict --trace-warnings
 
+submodule-shared-modules:
+	git submodule add https://github.com/flathub/shared-modules.git
+
+update-shared-modules:
+	git submodule update --remote --merge shared-modules
+
 remove: # Uninstall the Flatpak application
 	flatpak remove -y ${FLATPACK_ID}
 

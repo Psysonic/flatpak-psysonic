@@ -50,12 +50,8 @@ build-options:
     - RUSTUP_TOOLCHAIN=stable
 
 modules:
-  # - name: libayatana-appindicator
-  #   buildsystem: cmake
-  #   sources:
-  #     - type: archive
-  #       url: https://github.com/AyatanaIndicators/libayatana-appindicator/archive/refs/tags/0.6.0.tar.gz
-  #       sha256: 23be92ad8eb9625ce93b23b14f82f3cf88a4970c31d48581945ddfbac0441d06
+
+  - shared-modules/libayatana-appindicator/libayatana-appindicator-gtk3.json
 
   - name: psysonic
     buildsystem: simple
@@ -69,11 +65,20 @@ modules:
         - TAURI_SKIP_DEVSERVER_CHECK=true
         # npm offline cache — flatpak-node-generator places sources in flatpak-node/npm-cache
         - npm_config_cache=/run/build/psysonic/flatpak-node/npm-cache
+        - npm_config_offline=true
         - XDG_CACHE_HOME=/run/build/psysonic/flatpak-node/cache
     build-commands:
+      # Install npm dependencies from pre-generated offline sources
       - npm ci --offline
-      - npm run tauri build --no-bundle
+      # Force Tauri to build a .deb package only
+      - jq '.bundle.targets="deb"' <<<$(<src-tauri/tauri.conf.json) > src-tauri/tauri.conf.json
+      # Build the Tauri app, producing a .deb package in src-tauri/target/release/bundle/deb
+      - npm run tauri build
 
+      # Extract the .deb package to get the binary and assets
+      - find src-tauri/target/release/bundle/deb/ -name "Psysonic_*.deb" -exec ar -x {} \;
+
+      # Install binary and assets
       - install -Dm755 src-tauri/target/release/psysonic "${FLATPAK_DEST}/bin/psysonic"
 
       - install -Dm644 ${FLATPAK_ID}.desktop      "${FLATPAK_DEST}/share/applications/${FLATPAK_ID}.desktop"
@@ -98,4 +103,3 @@ modules:
       - generated-sources.json
 
       - cargo-sources.json
-
