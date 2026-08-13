@@ -14,7 +14,7 @@ OPTS_FULL_INSTALL = ${OPTS_INSTALL} --install-deps-from=flathub
 BUILD_PATH=build
 YARN_BIN=$(shell which yarnpkg || which yarn)
 
-${PACKAGE_MANAGER} = $(shell if command -v apt &> /dev/null; then echo "apt"; elif command -v dnf &> /dev/null; then echo "dnf"; else echo "unknown"; fi)
+PACKAGE_MANAGER = $(shell if command -v apt &> /dev/null; then echo "apt"; elif command -v dnf &> /dev/null; then echo "dnf"; else echo "unknown"; fi)
 
 build-install: clean # Build the Flatpak package with dependencies already installed
 	flatpak-builder ${OPTS_INSTALL} ${BUILD_PATH} ${FILE_YAML}
