@@ -5,7 +5,7 @@ FILE_YAML = ${FLATPACK_ID}.yaml
 FILE_METAINFO = ${FLATPACK_ID}.metainfo.xml
 FILE_FLATPAK = ${FLATPACK_ID}.flatpak
 
-COMMIT_HASH = '2d4cb95f7f932aa3ac91b8238f966363ca9eb8d6'
+COMMIT_HASH = 'e06f88b8d4eef0d32a76191d376735cb3c079117'
 
 OPTS = --arch=x86_64 --force-clean --user --verbose
 OPTS_INSTALL = ${OPTS} --install
