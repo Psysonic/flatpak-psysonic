@@ -40,16 +40,14 @@ flatpak-export: # Export the built Flatpak package to the local repository
 
 install-dependencies-locally: # Install Flatpak runtime and SDK dependencies locally
 	flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-	flatpak install -y --user flathub org.gnome.Platform
-	flatpak install -y --user flathub org.gnome.Sdk
+	flatpak install -y --user flathub org.gnome.Platform//50
+	flatpak install -y --user flathub org.gnome.Sdk//50
+	flatpak install -y --user flathub org.freedesktop.Sdk.Extension.rust-stable//25.08
 	flatpak install -y --user flathub org.electronjs.Electron2.BaseApp//25.08
-	flatpak install -y --user flathub org.freedesktop.Sdk//25.08
 	flatpak install -y --user flathub org.freedesktop.Sdk.Extension.node26
-	flatpak install -y --user flathub org.gnome.Platform//46
-	flatpak install -y --user flathub org.gnome.Sdk//46
 	sudo ${PACKAGE_MANAGER} install -y flatpak-builder nodejs npm yarnpkg
 	sudo npm install -g yarn@1.22.22
-	sudo npm install -gpnpm@11.9.0
+	sudo npm install -g pnpm@11.9.0
 
 setup-venv: # Create a Python virtual environment
 	python3 -m venv .venv
