@@ -40,7 +40,7 @@ flatpak-export: # Export the built Flatpak package to the local repository
 
 install-dependencies-locally: # Install Flatpak runtime and SDK dependencies locally
 	flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-	flatpak install -y --user flathub org.freedesktop.Platform//25.08
+	flatpak install -y --user flathub org.gnome.Platform/x86_64/50
 	flatpak install -y --user flathub org.gnome.Sdk/x86_64/50
 	flatpak install -y --user flathub org.electronjs.Electron2.BaseApp//25.08
 	flatpak install -y --user flathub org.freedesktop.Sdk//25.08
