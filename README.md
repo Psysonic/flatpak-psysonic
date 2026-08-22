@@ -9,7 +9,7 @@
 1. Update shared-modules
 
     ```bash
-    make update-shared-modules
+    make submodule-update-init
     ```
 
 1. Generate the package
