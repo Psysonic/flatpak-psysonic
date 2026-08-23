@@ -43,7 +43,6 @@ install-dependencies-locally: # Install Flatpak runtime and SDK dependencies loc
 	flatpak install -y --user flathub org.gnome.Platform//50
 	flatpak install -y --user flathub org.gnome.Sdk//50
 	flatpak install -y --user flathub org.freedesktop.Sdk.Extension.rust-stable//25.08
-	flatpak install -y --user flathub org.electronjs.Electron2.BaseApp//25.08
 	flatpak install -y --user flathub org.freedesktop.Sdk.Extension.node26
 	sudo ${PACKAGE_MANAGER} install -y flatpak-builder nodejs npm yarnpkg
 	sudo npm install -g yarn@1.22.22
