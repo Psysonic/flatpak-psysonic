@@ -8,6 +8,8 @@ FILE_SHA256 = ${FILE_FLATPAK}.sha256
 FLATPAK_BRANCH ?= stable
 RUNTIME_REPO = https://dl.flathub.org/repo/flathub.flatpakrepo
 REPO_URL ?=
+REPO_SEED_URL ?=
+REPO_HISTORY_DEPTH ?= 0
 GPG_SIGN ?=
 GPG_HOMEDIR ?=
 GPG_KEYS ?=
@@ -50,6 +52,15 @@ repository: build # Build once, then export the selected update branch
 
 export-repository: # Export the existing build directory as an update repository
 	rm -rf export
+	@if [ -n "${REPO_SEED_URL}" ]; then \
+		test -s "${GPG_KEYS}" || { echo "GPG_KEYS is required when REPO_SEED_URL is set" >&2; exit 2; }; \
+		case "${REPO_HISTORY_DEPTH}" in ''|*[!0-9]*) echo "REPO_HISTORY_DEPTH must be a non-negative integer" >&2; exit 2 ;; esac; \
+		ostree --repo=export init --mode=archive-z2; \
+		ostree --repo=export remote add --gpg-import="${GPG_KEYS}" \
+			--set=gpg-verify-summary=true psysonic-seed "${REPO_SEED_URL}"; \
+		ostree --repo=export pull --mirror --depth="${REPO_HISTORY_DEPTH}" psysonic-seed; \
+		ostree --repo=export remote delete psysonic-seed; \
+	fi
 	flatpak build-export ${GPG_SIGN_ARG} ${GPG_HOMEDIR_ARG} export ${BUILD_PATH} ${FLATPAK_BRANCH}
 	flatpak build-update-repo ${GPG_SIGN_ARG} ${GPG_HOMEDIR_ARG} \
 		--default-branch=${FLATPAK_BRANCH} \
@@ -57,7 +68,7 @@ export-repository: # Export the existing build directory as an update repository
 		--comment="Psysonic ${FLATPAK_BRANCH} update channel" \
 		--description="Signed ${FLATPAK_BRANCH} releases of the Psysonic desktop music player" \
 		--homepage="https://www.psysonic.de" \
-		--prune export
+		--prune --prune-depth=${REPO_HISTORY_DEPTH} export
 
 bundle: repository # Build the selected repository and its standalone bundle
 	${MAKE} bundle-from-repository
