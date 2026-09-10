@@ -81,7 +81,7 @@ modules:
     sources:
       - type: git
         url: https://github.com/Psysonic/psysonic.git
-        commit: ddd64773e4636ad607727db4a522ad252bca1e2b
+        commit: d862326e09aa184b61368dc3fbb8bd4794463386
 
       - type: file
         path: io.github.psysonic.psysonic.metainfo.xml
