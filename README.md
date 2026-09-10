@@ -91,6 +91,10 @@ the selected tag:
   not downgrade that channel.
 - `app-vX.Y.Z-rc.N` publishes branch `rc`.
 
+The matching GitHub Release must already be public. Draft or otherwise
+unpublished RC and stable Releases are rejected before any Flatpak channel is
+read or changed.
+
 The workflow expects these GitHub Actions secrets in the application repository:
 
 | Secret | Value |
