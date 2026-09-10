@@ -36,6 +36,7 @@ finish-args:
   - --talk-name=com.canonical.AppIndicator
 
 build-options:
+  libdir: /app/lib
   append-path: /usr/lib/sdk/node26/bin:/usr/lib/sdk/rust-stable/bin
   env:
     - CARGO_HOME=/run/build/psysonic/cargo
