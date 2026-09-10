@@ -17,7 +17,7 @@ GPG_SIGN_ARG = $(if ${GPG_SIGN},--gpg-sign=${GPG_SIGN})
 GPG_HOMEDIR_ARG = $(if ${GPG_HOMEDIR},--gpg-homedir=${GPG_HOMEDIR})
 GPG_KEYS_ARG = $(if ${GPG_KEYS},--gpg-keys=${GPG_KEYS})
 
-COMMIT_HASH = d862326e09aa184b61368dc3fbb8bd4794463386
+COMMIT_HASH = ae26555fa0528d3cfa7fd57047ab5740943903d4
 
 .PHONY: build repository export-repository bundle bundle-from-repository
 
