@@ -36,6 +36,10 @@ flatpak install --user ./Psysonic.flatpak
 flatpak run io.github.psysonic.psysonic
 ```
 
+The supported installation scope is per-user. The in-app updater deliberately
+uses `flatpak update --user`; system-wide installations are not currently part
+of the supported update contract.
+
 Once a repository-backed bundle has been installed, update it with:
 
 ```bash
@@ -96,7 +100,15 @@ The workflow expects these GitHub Actions secrets in the application repository:
 | `OSTREE_FTP_PASSWORD` | Deployment password |
 | `OSTREE_GPG_PRIVATE_KEY_B64` | Base64-encoded private GPG signing key |
 
+It also requires this repository variable in the application repository:
+
+| Variable | Value |
+| --- | --- |
+| `OSTREE_GPG_FINGERPRINT` | Full uppercase 40- or 64-character fingerprint of the repository signing key |
+
 Use a dedicated CI signing key that does not require an interactive passphrase.
+The workflow fails if its full fingerprint differs from
+`OSTREE_GPG_FINGERPRINT`, preventing accidental signing-key replacement.
 Create the secret value with:
 
 ```bash
