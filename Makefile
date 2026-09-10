@@ -1,13 +1,27 @@
 # Makefile for building, running and cleaning the Flatpak package
 
-FLATPACK_ID = io.github.psychotoxical.psysonic
+FLATPACK_ID = io.github.psysonic.psysonic
 FILE_YAML = ${FLATPACK_ID}.yaml
 FILE_METAINFO = ${FLATPACK_ID}.metainfo.xml
-FILE_FLATPAK = ${FLATPACK_ID}.flatpak
+FILE_FLATPAK = Psysonic.flatpak
+FILE_SHA256 = ${FILE_FLATPAK}.sha256
+FLATPAK_BRANCH ?= stable
+RUNTIME_REPO = https://dl.flathub.org/repo/flathub.flatpakrepo
+REPO_URL ?=
+GPG_SIGN ?=
+GPG_HOMEDIR ?=
+GPG_KEYS ?=
 
-COMMIT_HASH = 'e06f88b8d4eef0d32a76191d376735cb3c079117'
+REPO_URL_ARG = $(if ${REPO_URL},--repo-url=${REPO_URL})
+GPG_SIGN_ARG = $(if ${GPG_SIGN},--gpg-sign=${GPG_SIGN})
+GPG_HOMEDIR_ARG = $(if ${GPG_HOMEDIR},--gpg-homedir=${GPG_HOMEDIR})
+GPG_KEYS_ARG = $(if ${GPG_KEYS},--gpg-keys=${GPG_KEYS})
 
-OPTS = --arch=x86_64 --force-clean --user --verbose
+COMMIT_HASH = d862326e09aa184b61368dc3fbb8bd4794463386
+
+.PHONY: build repository export-repository bundle bundle-from-repository
+
+OPTS = --force-clean --user --verbose
 OPTS_INSTALL = ${OPTS} --install
 OPTS_FULL_INSTALL = ${OPTS_INSTALL} --install-deps-from=flathub
 
@@ -31,19 +45,47 @@ build-fast-install: clean-build-path # Build the Flatpak package without cleanin
 build-aarch64: clean-build-path # Build the Flatpak package for aarch64
 	flatpak-builder --user --arch=aarch64 ${BUILD_PATH} ${FILE_YAML}
 
-build-export: build flatpak-export # Build and export the Flatpak package
+repository: build # Build once, then export the selected update branch
+	${MAKE} export-repository
+
+export-repository: # Export the existing build directory as an update repository
+	rm -rf export
+	flatpak build-export ${GPG_SIGN_ARG} ${GPG_HOMEDIR_ARG} export ${BUILD_PATH} ${FLATPAK_BRANCH}
+	flatpak build-update-repo ${GPG_SIGN_ARG} ${GPG_HOMEDIR_ARG} \
+		--default-branch=${FLATPAK_BRANCH} \
+		--title="Psysonic ${FLATPAK_BRANCH}" \
+		--comment="Psysonic ${FLATPAK_BRANCH} update channel" \
+		--description="Signed ${FLATPAK_BRANCH} releases of the Psysonic desktop music player" \
+		--homepage="https://www.psysonic.de" \
+		--prune export
+
+bundle: repository # Build the selected repository and its standalone bundle
+	${MAKE} bundle-from-repository
+
+bundle-from-repository: # Bundle the repository currently in export/
+	rm -f ${FILE_FLATPAK} ${FILE_SHA256}
+	flatpak build-bundle ${REPO_URL_ARG} --runtime-repo=${RUNTIME_REPO} \
+		${GPG_KEYS_ARG} ${GPG_HOMEDIR_ARG} \
+		export ${FILE_FLATPAK} ${FLATPACK_ID} ${FLATPAK_BRANCH}
+	sha256sum ${FILE_FLATPAK} > ${FILE_SHA256}
 	@echo "[i] Flatpak package built and exported to ${FILE_FLATPAK}"
 
-flatpak-export: # Export the built Flatpak package to the local repository
-	flatpak build-export export ${BUILD_PATH}
-	flatpak build-bundle export ${FILE_FLATPAK} ${FLATPACK_ID}
+build-export: bundle # Backwards-compatible alias
+
+flatpak-export: repository # Backwards-compatible repository export alias
+
+install-bundle: # Install or replace the standalone bundle for the current user
+	flatpak install --user --reinstall -y ./${FILE_FLATPAK}
+
+verify-bundle: install-bundle # Verify that the installed bundle starts and reports its version
+	flatpak run ${FLATPACK_ID}//${FLATPAK_BRANCH} --version
 
 install-dependencies-locally: # Install Flatpak runtime and SDK dependencies locally
 	flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 	flatpak install -y --user flathub org.gnome.Platform//50
 	flatpak install -y --user flathub org.gnome.Sdk//50
 	flatpak install -y --user flathub org.freedesktop.Sdk.Extension.rust-stable//25.08
-	flatpak install -y --user flathub org.freedesktop.Sdk.Extension.node26
+	flatpak install -y --user flathub org.freedesktop.Sdk.Extension.node26//25.08
 	sudo ${PACKAGE_MANAGER} install -y flatpak-builder nodejs npm yarnpkg
 	sudo npm install -g yarn@1.22.22
 	sudo npm install -g pnpm@11.9.0
@@ -60,13 +102,13 @@ flatpak-cargo-generator: setup-venv # Install flatpak-node-generator in the virt
 	pip install flatpak-cargo-generator
 
 clean: # Clean up build artifacts
-	rm -rf build .flatpak-builder export temp-psysonic ${FILE_FLATPAK}
+	rm -rf build .flatpak-builder export publish temp-psysonic ${FILE_FLATPAK} ${FILE_SHA256}
 
 clean-build-path: # Clean up only the build path
 	rm -rf build .flatpak-builder/build
 
 yarn-sources: flatpak-node-generator # Update node modules in the Flatpak package
-	git clone https://github.com/Psychotoxical/psysonic.git temp-psysonic
+	git clone https://github.com/Psysonic/psysonic.git temp-psysonic
 	cd temp-psysonic && git checkout ${COMMIT_HASH}
 	cd temp-psysonic && ${YARN_BIN} cache clean && rm -rf node_modules package-lock.json yarn.lock pnpm-lock.yaml
 	${YARN_BIN} --cwd temp-psysonic install --production --mode=skip-build --network-timeout 100000
@@ -75,19 +117,19 @@ yarn-sources: flatpak-node-generator # Update node modules in the Flatpak packag
 	cp temp-psysonic/yarn.lock yarn.lock
 
 cargo-sources: flatpak-cargo-generator
-	git clone https://github.com/Psychotoxical/psysonic.git temp-psysonic
+	git clone https://github.com/Psysonic/psysonic.git temp-psysonic
 	cd temp-psysonic && git checkout ${COMMIT_HASH}
 	cd temp-psysonic && ../.venv/bin/flatpak-cargo-generator -t -o ../cargo-sources.json src-tauri/Cargo.lock
 	rm -rf temp-psysonic
 
 generated-sources: flatpak-node-generator # Update node modules in the Flatpak package
-	git clone https://github.com/Psychotoxical/psysonic.git temp-psysonic
+	git clone https://github.com/Psysonic/psysonic.git temp-psysonic
 	cd temp-psysonic && git checkout ${COMMIT_HASH}
 	cd temp-psysonic && ../.venv/bin/flatpak-node-generator npm package-lock.json -o ../generated-sources.json
 	rm -rf temp-psysonic
 
 run: # Run the Flatpak application
-	flatpak run ${FLATPACK_ID} --trace-deprecation --verbose --ostree-verbose --unhandled-rejections=strict --trace-warnings
+	flatpak run ${FLATPACK_ID}//${FLATPAK_BRANCH} --trace-deprecation --verbose --ostree-verbose --unhandled-rejections=strict --trace-warnings
 
 submodule-shared-modules:
 	git submodule add https://github.com/flathub/shared-modules.git
@@ -99,7 +141,7 @@ update-shared-modules:
 	git submodule update --remote --merge shared-modules
 
 remove: # Uninstall the Flatpak application
-	flatpak remove -y ${FLATPACK_ID}
+	flatpak remove -y ${FLATPACK_ID}//${FLATPAK_BRANCH}
 
 lint: # Lint the Flatpak YAML file
 	flatpak run --command=flatpak-builder-lint org.flatpak.Builder manifest ${FILE_YAML}
