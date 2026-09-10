@@ -99,9 +99,12 @@ The workflow expects these GitHub Actions secrets in the application repository:
 
 | Secret | Value |
 | --- | --- |
-| `OSTREE_FTP_SERVER` | FTP/FTPS/SFTP URL rooted at the HTTPS document root |
-| `OSTREE_FTP_USER` | Deployment account |
-| `OSTREE_FTP_PASSWORD` | Deployment password |
+| `OSTREE_SSH_HOST` | Deployment hostname or IPv4 address |
+| `OSTREE_SSH_PORT` | SSH port |
+| `OSTREE_SSH_USER` | Restricted deployment account |
+| `OSTREE_SSH_PATH` | Absolute HTTPS document root, currently `/var/www/flatpak` |
+| `OSTREE_SSH_PRIVATE_KEY` | Unencrypted private key dedicated to GitHub Actions deployment |
+| `OSTREE_SSH_KNOWN_HOSTS` | Pinned OpenSSH known-host entry for the configured host and port |
 | `OSTREE_GPG_PRIVATE_KEY_B64` | Base64-encoded private GPG signing key |
 
 It also requires this repository variable in the application repository:
@@ -119,9 +122,12 @@ Create the secret value with:
 gpg --export-secret-key <key-id> | base64 --wrap=0
 ```
 
-For `ftp://` URLs, the workflow requires TLS for credentials and data. The FTP
-account root must map to `https://flatpak.psysonic.de/`; the workflow publishes
-the `stable/` and `rc/` directories below it using a staging-directory rename.
+Run the application's **Flatpak SSH Diagnostics** workflow after changing any
+SSH secret. It verifies strict host-key checking, the dedicated account,
+directory write access, SCP upload, public HTTPS retrieval, and cleanup without
+publishing a release. The release workflow uploads hidden staging directories
+with SCP, atomically switches `stable/` and `rc/`, verifies each signed remote,
+and retains backups until the complete deployment succeeds.
 
 ## Generating sources
 
