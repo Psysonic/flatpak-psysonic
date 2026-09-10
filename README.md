@@ -84,19 +84,21 @@ then be addressed explicitly as `io.github.psysonic.psysonic//rc`.
 
 ## Publishing
 
-Publishing a prepared Psysonic GitHub Release triggers the application
-repository's `Flatpak Publish` workflow automatically. A manual dispatch with
-the release tag remains available to retry a failed run. The workflow infers
-the channel from the tag:
+Publishing a Psysonic GitHub Release triggers the application repository's
+`Flatpak Publish` workflow automatically. A manual dispatch with the release tag
+remains available to retry a failed run. The workflow infers the channel from
+the tag:
 
 - `app-vX.Y.Z` publishes branch `stable` and also advances `rc` when it would
   not downgrade that channel.
 - `app-vX.Y.Z-rc.N` publishes branch `rc`.
 
-Before publishing the draft Release, this repository's `main` branch must pin
-its exact tag commit and contain regenerated offline sources. Draft or otherwise
-unpublished RC and stable Releases are rejected before any Flatpak channel is
-read or changed.
+The workflow checks out the exact release tag, rewrites a temporary packaging
+checkout to that source commit, copies the canonical desktop metadata, and
+regenerates both offline dependency lists before building. The committed source
+pin remains useful for local packaging work, but it is not a release prerequisite
+and requires no manual update. Draft or otherwise unpublished RC and stable
+Releases are rejected before any Flatpak channel is read or changed.
 
 The workflow expects these GitHub Actions secrets in the application repository:
 
@@ -134,14 +136,14 @@ and retains backups until the complete deployment succeeds.
 
 ## Generating sources
 
-After changing `COMMIT_HASH` and the manifest source commit for a new release,
-regenerate both offline dependency lists:
+When changing the committed source pin for local packaging work, regenerate both
+offline dependency lists:
 
 ```bash
 make generated-sources
 make cargo-sources
 ```
 
-Before publishing, the workflow verifies that the manifest and `COMMIT_HASH` are
-pinned to the selected release tag. It then uploads the bundle to the existing
-GitHub Release and deploys the matching signed update repository.
+Official publication does this preparation automatically from the selected
+application checkout. It then uploads the bundle to the existing GitHub Release
+and deploys the matching signed update repository.
