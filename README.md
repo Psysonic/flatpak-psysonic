@@ -84,14 +84,17 @@ then be addressed explicitly as `io.github.psysonic.psysonic//rc`.
 
 ## Publishing
 
-The application repository's `Flatpak Publish` workflow infers the channel from
-the selected tag:
+Publishing a prepared Psysonic GitHub Release triggers the application
+repository's `Flatpak Publish` workflow automatically. A manual dispatch with
+the release tag remains available to retry a failed run. The workflow infers
+the channel from the tag:
 
 - `app-vX.Y.Z` publishes branch `stable` and also advances `rc` when it would
   not downgrade that channel.
 - `app-vX.Y.Z-rc.N` publishes branch `rc`.
 
-The matching GitHub Release must already be public. Draft or otherwise
+Before publishing the draft Release, this repository's `main` branch must pin
+its exact tag commit and contain regenerated offline sources. Draft or otherwise
 unpublished RC and stable Releases are rejected before any Flatpak channel is
 read or changed.
 

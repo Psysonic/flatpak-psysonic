@@ -1,4 +1,4 @@
-app-id: io.github.psysonic.psysonic
+id: io.github.psysonic.psysonic
 runtime: org.gnome.Platform
 runtime-version: '50'
 sdk: org.gnome.Sdk
@@ -49,8 +49,6 @@ modules:
 
   - name: psysonic
     buildsystem: simple
-    license-files:
-      - LICENSE
     build-options:
       append-path: /usr/lib/sdk/node26/bin:/usr/lib/sdk/rust-stable/bin
       env:
@@ -64,12 +62,15 @@ modules:
         - npm_config_offline=true
         - XDG_CACHE_HOME=/run/build/psysonic/flatpak-node/cache
     build-commands:
+      # flatpak-cargo-generator still emits the legacy Cargo config filename.
+      - if [ -f cargo/config ]; then mv cargo/config cargo/config.toml; fi
       # Install npm dependencies from pre-generated offline sources
       - npm ci --offline
       - npm run tauri build -- --no-bundle
 
       # Install binary and assets
       - install -Dm755 src-tauri/target/release/psysonic "${FLATPAK_DEST}/bin/psysonic"
+      - install -Dm644 LICENSE "${FLATPAK_DEST}/share/licenses/${FLATPAK_ID}/LICENSE"
 
       - install -Dm644 ${FLATPAK_ID}.desktop "${FLATPAK_DEST}/share/applications/${FLATPAK_ID}.desktop"
       - install -Dm644 ${FLATPAK_ID}.metainfo.xml "${FLATPAK_DEST}/share/metainfo/${FLATPAK_ID}.metainfo.xml"
