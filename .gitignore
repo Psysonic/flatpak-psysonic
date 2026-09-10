@@ -7,5 +7,7 @@ npm-debug.log
 package-lock.json
 package.json
 *.flatpak
+*.flatpak.sha256
 export
+publish
 temp-psysonic
