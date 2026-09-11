@@ -20,6 +20,15 @@ builds and the matching final stable release, so testers continue onto the
 released build without switching remotes. A published `version.txt` guard stops
 an older stable patch from replacing an RC from a newer release line.
 
+Official publication retains five stable commits and three RC commits in their
+respective OSTree histories. The test channel is intentionally rebuilt with only
+its current commit. Users can inspect retained stable versions and roll back with:
+
+```bash
+flatpak remote-info --log psysonic io.github.psysonic.psysonic
+flatpak update --user --commit=<commit> io.github.psysonic.psysonic
+```
+
 Each channel also publishes `release.json` with its current version, tag and
 GitHub release notes. Flatpak builds read this file through the native host so
 the updater follows the installed branch without browser CORS or API-rate-limit
@@ -99,6 +108,9 @@ regenerates both offline dependency lists before building. The committed source
 pin remains useful for local packaging work, but it is not a release prerequisite
 and requires no manual update. Draft or otherwise unpublished RC and stable
 Releases are rejected before any Flatpak channel is read or changed.
+Before exporting a release channel, the workflow verifies and mirrors its signed
+current history. The new commit is added on top and bounded pruning keeps five
+stable commits or three RC commits; test publications start from an empty repo.
 
 The workflow expects these GitHub Actions secrets in the application repository:
 
