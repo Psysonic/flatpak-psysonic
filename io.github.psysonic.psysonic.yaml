@@ -17,6 +17,9 @@ finish-args:
   # Display: prefer Wayland, fall back to X11
   - --socket=wayland
   - --socket=fallback-x11
+  # GPU access for WebKitGTK; without it the sandbox has no /dev/dri and
+  # WebKit renders on llvmpipe (Psysonic/psysonic#1579)
+  - --device=dri
   # On pure-Wayland sessions the X11 socket is absent; tell GDK to try
   # Wayland first so GTK doesn't panic when XDG_SESSION_TYPE=wayland.
   - --env=GDK_BACKEND=wayland,x11
